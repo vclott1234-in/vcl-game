@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Navbar from "./Navbar";
 
-const API_URL = "http://127.0.0.1:8080/api/auth/add-user";
+const API_URL = "https://vcl-game.vercel.app/api/auth/add-user";
 
 export default function AddUsers() {
   const [formData, setFormData] = useState({
@@ -107,3 +107,4 @@ export default function AddUsers() {
     </Navbar>
   );
 }
+
