@@ -15,7 +15,7 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/login", {
+      const res = await fetch("https://vcl-game.vercel.app/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,3 +113,4 @@ export default function Login() {
     </div>
   );
 }
+
