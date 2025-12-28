@@ -23,7 +23,7 @@ export default function Signup() {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/add-user", {
+      const res = await fetch("https://vcl-game.vercel.app/api/auth/add-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,3 +169,4 @@ export default function Signup() {
     </div>
   );
 }
+
