@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 
-const API_BASE = "http://127.0.0.1:8080"; // 🔁 change if needed
+const API_BASE = "https://vcl-game.vercel.app"; // 🔁 change if needed
 
 export default function AdminUsers() {
   // ================= FORM STATE =================
@@ -211,3 +211,4 @@ export default function AdminUsers() {
     </Navbar>
   );
 }
+
