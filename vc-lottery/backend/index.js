@@ -19,7 +19,7 @@ server.use("/api", routes);
 
 // db init
 mongoose
-  .connect(`${process.env.MONGO_URI}`)
+  .connect(`mongodb+srv://vc_lottery:3yfJufDlQnrbkTtT@cluster0.uag6iaz.mongodb.net/vclottery`)
   .then(() => console.log("Connected to DB successfully!"))
   .catch((err) => console.log("DB ERROR:", err));
 
