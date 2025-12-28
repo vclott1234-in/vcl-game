@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 
-const API_BASE = "http://127.0.0.1:8080";
+const API_BASE = "https://vcl-game.vercel.app";
 
 export default function Schedule() {
   const [adminInfo, setAdminInfo] = useState({
@@ -283,3 +283,4 @@ export default function Schedule() {
     </Navbar>
   );
 }
+
