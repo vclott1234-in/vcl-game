@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import routes from "./routes/index.route.js";
 
-dotenv.config({path: path.join(process.cwd(), '..', '..', '.env')});
+dotenv.config();
 
 const server = express();
 
