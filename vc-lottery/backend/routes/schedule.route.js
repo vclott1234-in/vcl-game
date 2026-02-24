@@ -159,8 +159,9 @@ router.put("/update", upload.single("qrCode"), async (req, res) => {
 /* ================= GET RESULT ================= */
 /* ================= GET RESULT ================= */
 router.get("/result", async (req, res) => {
+  const {scheduleId} = req.body;
   try {
-    const schedule = await Schedule.findOne()
+    const schedule = await Schedule.findOne({_id: scheduleId})
       .sort({ scheduleDate: -1 })
       .populate("winnerId", "name mobile");
 
