@@ -168,18 +168,25 @@ router.get("/result", async (req, res) => {
       return res.status(404).json({ message: "No schedule found" });
     }
 
-    const now = Date.now(); // current timestamp in ms
-    const scheduleTime = new Date(schedule.scheduleDate).getTime(); // schedule timestamp
+    const now = Date.now();
+    const scheduleTime = new Date(schedule.scheduleDate).getTime();
 
-    // ✅ Only block if schedule time is strictly in future
+    // ❌ If time has not passed
     if (now < scheduleTime) {
       return res.status(403).json({
         message: "Winner not declared yet. Please check after scheduled time.",
       });
     }
 
-    // If current time >= schedule time → allow
-    res.status(200).json({
+    // ❌ If admin has not declared winner
+    if (!schedule.isDeclared) {
+      return res.status(403).json({
+        message: "Winner not declared by admin yet.",
+      });
+    }
+
+    // ✅ Everything valid
+    return res.status(200).json({
       scheduleId: schedule._id,
       lotteryName: schedule.lotteryName,
       scheduleDate: schedule.scheduleDate,
@@ -189,7 +196,7 @@ router.get("/result", async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error fetching result",
       error: error.message,
     });
