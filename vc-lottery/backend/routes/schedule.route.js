@@ -172,11 +172,11 @@ router.get("/result", async (req, res) => {
     const scheduleTime = new Date(schedule.scheduleDate).getTime();
 
     // ❌ If time has not passed
-    if (now < scheduleTime) {
-      return res.status(403).json({
-        message: "Winner not declared yet. Please check after scheduled time.",
-      });
-    }
+    // if (now < scheduleTime) {
+    //   return res.status(403).json({
+    //     message: "Winner not declared yet. Please check after scheduled time.",
+    //   });
+    // }
 
     // ❌ If admin has not declared winner
     if (!schedule.isDeclared) {
