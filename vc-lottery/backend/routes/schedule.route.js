@@ -168,16 +168,17 @@ router.get("/result", async (req, res) => {
       return res.status(404).json({ message: "No schedule found" });
     }
 
-    const now = new Date();
-    const scheduleTime = new Date(schedule.scheduleDate);
+    const now = Date.now(); // current timestamp in ms
+    const scheduleTime = new Date(schedule.scheduleDate).getTime(); // schedule timestamp
 
-    // ✅ Only reveal winner if scheduled time has passed
-    if (scheduleTime > now) {
+    // ✅ Only block if schedule time is strictly in future
+    if (now < scheduleTime) {
       return res.status(403).json({
         message: "Winner not declared yet. Please check after scheduled time.",
       });
     }
 
+    // If current time >= schedule time → allow
     res.status(200).json({
       scheduleId: schedule._id,
       lotteryName: schedule.lotteryName,
@@ -186,6 +187,7 @@ router.get("/result", async (req, res) => {
       upiId: schedule.upiId,
       winner: schedule.winnerId || null,
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Error fetching result",
