@@ -4,6 +4,8 @@ import Navbar from "./Navbar";
 const API_BASE = "https://vcl-game.vercel.app";
 
 export default function Schedule() {
+  const [adminId, setAdminId] = useState("");
+
   const [adminInfo, setAdminInfo] = useState({
     mobile: "",
     upi: "",
@@ -21,13 +23,26 @@ export default function Schedule() {
 
   const [qrFile, setQrFile] = useState(null);
 
-  /* ================= FETCH USERS & LOTTERIES ================= */
+  /* ================= INITIAL FETCH ================= */
   useEffect(() => {
     const init = async () => {
+      const storedUser = JSON.parse(localStorage.getItem("users"));
+
+      if (!storedUser || !storedUser._id) {
+        alert("Admin not found. Please login again.");
+        return;
+      }
+
+      setAdminId(storedUser._id);
+
       try {
         const [userRes, lotteryRes] = await Promise.all([
-          fetch(`${API_BASE}/api/user/get-users`),
-          fetch(`${API_BASE}/api/schedule/get-lottery`),
+          fetch(
+            `${API_BASE}/api/user/get-users?createdBy=${storedUser._id}`
+          ),
+          fetch(
+            `${API_BASE}/api/schedule/get-lottery?adminId=${storedUser._id}`
+          ),
         ]);
 
         const userData = await userRes.json();
@@ -43,7 +58,7 @@ export default function Schedule() {
     init();
   }, []);
 
-  /* ================= PREFILL DATA ON LOTTERY SELECT ================= */
+  /* ================= PREFILL LOTTERY DATA ================= */
   useEffect(() => {
     if (!selectedScheduleId) return;
 
@@ -67,13 +82,13 @@ export default function Schedule() {
     }
   }, [selectedScheduleId, lotteries]);
 
-  /* ================= HANDLERS ================= */
+  /* ================= HANDLE INPUT CHANGE ================= */
   const handleAdminChange = (e) => {
     const { name, value } = e.target;
     setAdminInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  /* ================= UPDATE LOTTERY DETAILS ================= */
+  /* ================= UPDATE LOTTERY ================= */
   const handleScheduleSubmit = async (e) => {
     e.preventDefault();
 
@@ -85,6 +100,7 @@ export default function Schedule() {
     try {
       const formData = new FormData();
       formData.append("scheduleId", selectedScheduleId);
+      formData.append("adminId", adminId); // ✅ REQUIRED
       formData.append("lotteryName", adminInfo.lotteryName);
       formData.append("upiId", adminInfo.upi);
       formData.append("adminMobile", adminInfo.mobile);
@@ -103,12 +119,20 @@ export default function Schedule() {
       if (!res.ok) throw new Error(data.message);
 
       alert("Lottery updated successfully");
+
+      // Refresh lotteries
+      const refresh = await fetch(
+        `${API_BASE}/api/schedule/get-lottery?adminId=${adminId}`
+      );
+      const refreshedData = await refresh.json();
+      setLotteries(refreshedData.lottery || []);
+
     } catch (err) {
       alert(err.message);
     }
   };
 
-  /* ================= DECLARE / CHANGE WINNER ================= */
+  /* ================= DECLARE WINNER ================= */
   const handleSelectWinner = async () => {
     if (!selectedScheduleId || !selectedWinner) {
       alert("Select lottery and user first");
@@ -116,19 +140,24 @@ export default function Schedule() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/schedule/select-winner`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scheduleId: selectedScheduleId,
-          winnerId: selectedWinner,
-        }),
-      });
+      const res = await fetch(
+        `${API_BASE}/api/schedule/select-winner`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scheduleId: selectedScheduleId,
+            adminId: adminId, // ✅ REQUIRED
+            winnerId: selectedWinner,
+          }),
+        }
+      );
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
       alert("Winner updated successfully");
+
     } catch (err) {
       alert(err.message);
     }
@@ -143,125 +172,87 @@ export default function Schedule() {
 
         {/* UPDATE ADMIN INFO */}
         <div className="bg-white rounded-xl shadow-md p-8 border-l-4 border-teal-400">
-          <h2 className="text-xl font-semibold mb-6">👤 Update Admin Info</h2>
+          <h2 className="text-xl font-semibold mb-6">Update Lottery Info</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Mobile Number
-              </label>
-              <input
-                type="text"
-                name="mobile"
-                value={adminInfo.mobile}
-                onChange={handleAdminChange}
-                className="w-full border rounded-md px-4 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">UPI ID</label>
-              <input
-                type="text"
-                name="upi"
-                value={adminInfo.upi}
-                onChange={handleAdminChange}
-                className="w-full border rounded-md px-4 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                QR Code Image
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setQrFile(e.target.files[0])}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium mb-1">
-              Lottery Name
-            </label>
             <input
               type="text"
-              name="lotteryName"
-              value={adminInfo.lotteryName}
+              name="mobile"
+              placeholder="Mobile"
+              value={adminInfo.mobile}
               onChange={handleAdminChange}
-              className="w-full border rounded-md px-4 py-2"
+              className="border rounded-md px-4 py-2"
+            />
+
+            <input
+              type="text"
+              name="upi"
+              placeholder="UPI ID"
+              value={adminInfo.upi}
+              onChange={handleAdminChange}
+              className="border rounded-md px-4 py-2"
+            />
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setQrFile(e.target.files[0])}
             />
           </div>
+
+          <input
+            type="text"
+            name="lotteryName"
+            placeholder="Lottery Name"
+            value={adminInfo.lotteryName}
+            onChange={handleAdminChange}
+            className="border rounded-md px-4 py-2 mt-4 w-full"
+          />
         </div>
 
-        {/* SCHEDULE LOTTERY */}
+        {/* SCHEDULE */}
         <div className="bg-white rounded-xl shadow-md p-8 border-l-4 border-teal-400">
-          <h2 className="text-xl font-semibold mb-6">⏰ Schedule Lottery</h2>
+          <h2 className="text-xl font-semibold mb-6">Schedule Lottery</h2>
 
-          <form
-            onSubmit={handleScheduleSubmit}
-            className="grid grid-cols-1 md:grid-cols-2 gap-8"
-          >
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Select Lottery
-              </label>
-              <select
-                value={selectedScheduleId}
-                onChange={(e) => setSelectedScheduleId(e.target.value)}
-                className="w-full border rounded-md px-4 py-2 mb-4"
-              >
-                <option value="">Select lottery</option>
-                {lotteries.map((l) => (
-                  <option key={l._id} value={l._id}>
-                    {l.lotteryName}
-                  </option>
-                ))}
-              </select>
+          <form onSubmit={handleScheduleSubmit}>
+            <select
+              value={selectedScheduleId}
+              onChange={(e) => setSelectedScheduleId(e.target.value)}
+              className="border rounded-md px-4 py-2 w-full mb-4"
+            >
+              <option value="">Select lottery</option>
+              {lotteries.map((l) => (
+                <option key={l._id} value={l._id}>
+                  {l.lotteryName}
+                </option>
+              ))}
+            </select>
 
-              <label className="block text-sm font-medium mb-1">
-                Select Date & Time
-              </label>
-              <input
-                type="datetime-local"
-                value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-                className="w-full border rounded-md px-4 py-2"
-              />
-            </div>
+            <input
+              type="datetime-local"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              className="border rounded-md px-4 py-2 w-full mb-4"
+            />
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Message (optional)
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="w-full border rounded-md px-4 py-2 h-32 resize-none"
-              />
-
-              <button
-                type="submit"
-                className="mt-6 bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-md"
-              >
-                Update Lottery
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-md"
+            >
+              Update Lottery
+            </button>
           </form>
         </div>
 
         {/* SELECT WINNER */}
         <div className="bg-white rounded-xl shadow-md p-8 border-l-4 border-orange-400">
-          <h2 className="text-xl font-semibold mb-6">🏆 Select Winner</h2>
+          <h2 className="text-xl font-semibold mb-6">Select Winner</h2>
 
           <select
             disabled={!selectedScheduleId}
             value={selectedWinner}
             onChange={(e) => setSelectedWinner(e.target.value)}
-            className="w-full border rounded-md px-4 py-2"
+            className="border rounded-md px-4 py-2 w-full"
           >
             <option value="">Select a user</option>
             {users.map((u) => (
@@ -283,4 +274,3 @@ export default function Schedule() {
     </Navbar>
   );
 }
-

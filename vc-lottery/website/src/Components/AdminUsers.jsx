@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 
-const API_BASE = "https://vcl-game.vercel.app"; // 🔁 change if needed
+const API_BASE = "https://vcl-game.vercel.app";
 
 export default function AdminUsers() {
+  const [adminId, setAdminId] = useState("");
+
   // ================= FORM STATE =================
   const [form, setForm] = useState({
     name: "",
     mobile: "",
-    password: "",
     town: "",
     address: "",
   });
@@ -25,19 +26,22 @@ export default function AdminUsers() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ================= FETCH USERS =================
-  async function fetchUsers() {
+  // ================= FETCH USERS (ADMIN FILTERED) =================
+  async function fetchUsers(currentAdminId) {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/user/get-users`);
+
+      const res = await fetch(
+        `${API_BASE}/api/user/get-users?createdBy=${currentAdminId}`
+      );
+
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to fetch users");
       }
 
-      setUsers(data?.users);
-      console.log(data);
+      setUsers(data?.users || []);
     } catch (err) {
       console.error(err);
       alert("Error fetching users");
@@ -46,8 +50,17 @@ export default function AdminUsers() {
     }
   }
 
+  // ================= INIT =================
   useEffect(() => {
-    fetchUsers();
+    const storedUser = JSON.parse(localStorage.getItem("users"));
+
+    if (!storedUser?._id) {
+      alert("Admin not found. Please login again.");
+      return;
+    }
+
+    setAdminId(storedUser._id);
+    fetchUsers(storedUser._id);
   }, []);
 
   // ================= FILTER =================
@@ -62,7 +75,6 @@ export default function AdminUsers() {
     setForm({
       name: u.name || "",
       mobile: u.mobile || "",
-      password: "",
       town: u.town || "",
       address: u.address || "",
     });
@@ -71,7 +83,7 @@ export default function AdminUsers() {
 
   const handleCancelEdit = () => {
     setEditingUser(null);
-    setForm({ name: "", mobile: "", password: "", town: "", address: "" });
+    setForm({ name: "", mobile: "", town: "", address: "" });
   };
 
   // ================= UPDATE USER =================
@@ -80,7 +92,8 @@ export default function AdminUsers() {
 
     try {
       const payload = {
-        userId: editingUser._id || editingUser.id,
+        userId: editingUser._id,
+        adminId: adminId, // ✅ REQUIRED
         name: form.name,
         mobile: form.mobile,
         town: form.town,
@@ -102,15 +115,15 @@ export default function AdminUsers() {
       }
 
       alert("User updated successfully");
+
       setEditingUser(null);
-      fetchUsers(); // 🔁 refresh list
+      fetchUsers(adminId); // refresh only this admin users
     } catch (err) {
       console.error(err);
       alert(err.message);
     }
   }
 
-  // ================= UI =================
   return (
     <Navbar>
       {!editingUser ? (
@@ -119,7 +132,7 @@ export default function AdminUsers() {
             <div>
               <h2 className="text-2xl font-bold">All Users</h2>
               <p className="text-sm text-gray-600 mt-1">
-                A list of all users including their details.
+                A list of users created by you.
               </p>
             </div>
 
@@ -152,7 +165,7 @@ export default function AdminUsers() {
                 <tbody>
                   {filtered.map((u, i) => (
                     <tr
-                      key={u._id || u.id}
+                      key={u._id}
                       className="odd:bg-white even:bg-gray-50"
                     >
                       <td className="p-3">{i + 1}</td>
@@ -172,6 +185,14 @@ export default function AdminUsers() {
                       </td>
                     </tr>
                   ))}
+
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="text-center py-6 text-gray-500">
+                        No users found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             )}
@@ -211,4 +232,3 @@ export default function AdminUsers() {
     </Navbar>
   );
 }
-

@@ -9,9 +9,46 @@ export default function Winners() {
   useEffect(() => {
     const fetchWinners = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/schedule/result`);
-        if (!res.ok) throw new Error("Failed to fetch winners");
-        const data = await res.json();
+        const storedUser = JSON.parse(localStorage.getItem("users"));
+
+        if (!storedUser?._id) {
+          console.log("Admin not found");
+          return;
+        }
+
+        const adminId = storedUser._id;
+
+        // 1️⃣ Get all lotteries for this admin
+        const lotteryRes = await fetch(
+          `${API_BASE}/api/schedule/get-lottery?adminId=${adminId}`
+        );
+
+        const lotteryData = await lotteryRes.json();
+        const lotteries = lotteryData.lottery || [];
+
+        if (!lotteries.length) {
+          setWinners([]);
+          return;
+        }
+
+        // 2️⃣ Find latest declared winner
+        const declaredLottery = lotteries.find(
+          (l) => l.isDeclared === true
+        );
+
+        if (!declaredLottery) {
+          setWinners([]);
+          return;
+        }
+
+        // 3️⃣ Fetch result using adminId + scheduleId
+        const resultRes = await fetch(
+          `${API_BASE}/api/schedule/result/${declaredLottery._id}?adminId=${adminId}`
+        );
+
+        if (!resultRes.ok) throw new Error("Failed to fetch result");
+
+        const data = await resultRes.json();
 
         if (data.winner) {
           setWinners([
@@ -19,7 +56,7 @@ export default function Winners() {
               id: 1,
               token: data.winner.token || "-",
               name: data.winner.name || "Unknown",
-              role: "user",
+              role: "User",
               phone: data.winner.mobile || "-",
               datetime: new Date(data.scheduleDate).toLocaleString(),
             },
@@ -39,7 +76,6 @@ export default function Winners() {
   return (
     <Navbar>
       <div className="bg-[#fdece6] p-6 rounded-lg">
-        {/* Header */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-black">Winning Users</h2>
           <p className="text-gray-700 mt-1">
@@ -47,7 +83,6 @@ export default function Winners() {
           </p>
         </div>
 
-        {/* Table */}
         <div className="overflow-x-auto bg-white border-2 border-teal-400 rounded-md">
           <table className="min-w-full text-left">
             <thead className="border-b">
@@ -90,4 +125,3 @@ export default function Winners() {
     </Navbar>
   );
 }
-
