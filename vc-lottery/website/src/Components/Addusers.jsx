@@ -36,13 +36,15 @@ export default function AddUsers() {
 
     try {
       setLoading(true);
-
+      const storedAdmin = JSON.parse(localStorage.getItem("users"));
+     
       const payload = {
         name: formData.name.trim(),
         mobile: formData.mobile.trim(),
         password: formData.password.trim(),
         town: formData.town.trim(),
         address: formData.address.trim(),
+        createdBy: storedAdmin._id
       };
 
       const res = await fetch(API_URL, {
@@ -130,4 +132,5 @@ export default function AddUsers() {
       </div>
     </Navbar>
   );
+
 }
