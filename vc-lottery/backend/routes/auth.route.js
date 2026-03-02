@@ -17,7 +17,7 @@ router.post("/add-user", async (req, res) => {
       return res.status(400).json({ message: "Mobile already registered!" });
     }
 
-    const tokenlen = await User.countDocuments({ createdBy: adminId });
+    const tokenlen = await User.countDocuments({ createdBy: createdBy });
 
     const user = await User.create({
       name,
@@ -25,7 +25,7 @@ router.post("/add-user", async (req, res) => {
       password,
       town,
       address,
-      createdBy: String.toString(createdBy),
+      createdBy: createdBy,
       token: tokenlen + 1,
     });
 
