@@ -52,7 +52,7 @@ export default function AdminUsers() {
 
   // ================= INIT =================
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const storedUser = JSON.parse(localStorage.getItem("users"));
 
     if (!storedUser?._id) {
       alert("Admin not found. Please login again.");
@@ -233,3 +233,4 @@ export default function AdminUsers() {
   );
 
 }
+
