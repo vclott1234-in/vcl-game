@@ -25,7 +25,7 @@ router.post("/add-user", async (req, res) => {
       password,
       town,
       address,
-      createdBy: createdBy,
+      createdBy: String.toString(createdBy),
       token: tokenlen + 1,
     });
 
