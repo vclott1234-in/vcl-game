@@ -6,7 +6,7 @@ const router = express.Router();
 // ================= ADD USER =================
 router.post("/add-user", async (req, res) => {
   try {
-    const { name, mobile, password, town, address, adminId } = req.body;
+    const { name, mobile, password, town, address, createdBy } = req.body;
 
     if (!name || !mobile || !password) {
       return res.status(400).json({ message: "Required fields missing!" });
@@ -25,7 +25,7 @@ router.post("/add-user", async (req, res) => {
       password,
       town,
       address,
-      createdBy: adminId,
+      createdBy: createdBy,
       token: tokenlen + 1,
     });
 
