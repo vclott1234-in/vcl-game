@@ -169,7 +169,7 @@ export default function AdminUsers() {
                       className="odd:bg-white even:bg-gray-50"
                     >
                       <td className="p-3">{i + 1}</td>
-                      <td className="p-3">{u._id.substring(10)}</td>
+                      <td className="p-3">{u.token}</td>
                       <td className="p-3">{u.name}</td>
                       <td className="p-3">{u.mobile}</td>
                       <td className="p-3">{u.town}</td>
@@ -233,4 +233,5 @@ export default function AdminUsers() {
   );
 
 }
+
 
