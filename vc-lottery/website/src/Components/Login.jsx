@@ -35,7 +35,7 @@ export default function Login() {
 
       // ✅ Login success
       localStorage.setItem("isAuth", "true");
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("users", JSON.stringify(data.user));
 
       navigate("/"); // go to AdminUsers
     } catch (err) {
@@ -113,4 +113,5 @@ export default function Login() {
     </div>
   );
 }
+
 
