@@ -8,34 +8,25 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-/* ================= GET ALL LOTTERIES ================= */
-router.get("/get-lottery", async (req, res) => {
-  try {
-    const lottery = await Schedule.find().sort({ scheduleDate: -1 });
-    res.status(200).json({ lottery });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error fetching lottery schedule",
-      error: error.message,
-    });
-  }
-});
-
-/* ================= CREATE SCHEDULE ================= */
+/* ============================================================
+   CREATE LOTTERY
+   ============================================================ */
 router.post("/create", upload.single("qrCode"), async (req, res) => {
   try {
-    const { adminMobile, upiId, lotteryName, scheduleDate } = req.body;
+    const { adminId, adminMobile, upiId, lotteryName, scheduleDate } = req.body;
 
-    if (!adminMobile || !upiId || !lotteryName || !scheduleDate) {
+    if (!adminId || !adminMobile || !upiId || !lotteryName || !scheduleDate) {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
     const schedule = await Schedule.create({
+      adminId,
       adminMobile,
       upiId,
       lotteryName,
       scheduleDate: new Date(scheduleDate),
       winnerId: null,
+      isDeclared: false,
       qrCode: req.file
         ? {
             data: req.file.buffer,
@@ -48,6 +39,7 @@ router.post("/create", upload.single("qrCode"), async (req, res) => {
       message: "Schedule created successfully",
       scheduleId: schedule._id,
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Error creating schedule",
@@ -56,78 +48,57 @@ router.post("/create", upload.single("qrCode"), async (req, res) => {
   }
 });
 
-/* ================= UPDATE SCHEDULE TIME (NEW) ================= */
-router.put("/update-time", async (req, res) => {
+/* ============================================================
+   GET ALL LOTTERIES OF ADMIN
+   ============================================================ */
+router.get("/get-lottery", async (req, res) => {
   try {
-    const { scheduleId, scheduleDate } = req.body;
+    const { adminId } = req.query;
 
-    if (!scheduleId || !scheduleDate) {
-      return res.status(400).json({ message: "Missing fields" });
+    if (!adminId) {
+      return res.status(400).json({ message: "Admin ID required" });
     }
 
-    const schedule = await Schedule.findById(scheduleId);
-    if (!schedule) {
-      return res.status(404).json({ message: "Schedule not found" });
-    }
+    const lottery = await Schedule.find({ adminId })
+      .sort({ scheduleDate: -1 });
 
-    schedule.scheduleDate = new Date(scheduleDate);
-    await schedule.save();
+    res.status(200).json({ lottery });
 
-    res.status(200).json({
-      message: "Schedule time updated successfully",
-      schedule,
-    });
   } catch (error) {
     res.status(500).json({
-      message: "Error updating schedule time",
+      message: "Error fetching lottery",
       error: error.message,
     });
   }
 });
 
-/* ================= SELECT / CHANGE WINNER ================= */
-router.put("/select-winner", async (req, res) => {
-  try {
-    const { scheduleId, winnerId } = req.body;
-
-    if (!scheduleId || !winnerId) {
-      return res.status(400).json({ message: "Missing fields" });
-    }
-
-    const schedule = await Schedule.findById(scheduleId);
-    if (!schedule) {
-      return res.status(404).json({ message: "Schedule not found" });
-    }
-
-    // ✅ ADMIN OVERRIDE — ALWAYS ALLOWED
-    schedule.winnerId = winnerId;
-    await schedule.save();
-
-    res.status(200).json({
-      message: "Winner updated successfully",
-      winnerId,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error selecting winner",
-      error: error.message,
-    });
-  }
-});
-
-/* ================= UPDATE LOTTERY DETAILS ================= */
+/* ============================================================
+   UPDATE LOTTERY DETAILS (OWNER CHECK)
+   ============================================================ */
 router.put("/update", upload.single("qrCode"), async (req, res) => {
   try {
-    const { scheduleId, lotteryName, upiId, adminMobile, scheduleDate } =
-      req.body;
+    const {
+      scheduleId,
+      adminId,
+      lotteryName,
+      upiId,
+      adminMobile,
+      scheduleDate,
+    } = req.body;
 
-    if (!scheduleId) {
-      return res.status(400).json({ message: "Schedule ID required" });
+    if (!scheduleId || !adminId) {
+      return res.status(400).json({ message: "Schedule ID and Admin ID required" });
     }
 
-    const schedule = await Schedule.findById(scheduleId);
+    const schedule = await Schedule.findOne({
+      _id: scheduleId,
+      adminId,
+    });
+
     if (!schedule) {
-      return res.status(404).json({ message: "Schedule not found" });
+      return res.status(403).json({
+        message: "Not authorized to update this lottery",
+      });
     }
 
     if (lotteryName) schedule.lotteryName = lotteryName;
@@ -148,6 +119,7 @@ router.put("/update", upload.single("qrCode"), async (req, res) => {
       message: "Lottery updated successfully",
       schedule,
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Error updating lottery",
@@ -156,37 +128,109 @@ router.put("/update", upload.single("qrCode"), async (req, res) => {
   }
 });
 
-/* ================= GET RESULT ================= */
-/* ================= GET RESULT ================= */
-router.get("/result", async (req, res) => {
+/* ============================================================
+   UPDATE SCHEDULE TIME (OWNER CHECK)
+   ============================================================ */
+router.put("/update-time", async (req, res) => {
   try {
-    const schedule = await Schedule.findOne()
-      .sort({ scheduleDate: -1 })
-      .populate("winnerId", "name mobile");
+    const { scheduleId, adminId, scheduleDate } = req.body;
 
-    if (!schedule) {
-      return res.status(404).json({ message: "No schedule found" });
+    if (!scheduleId || !adminId || !scheduleDate) {
+      return res.status(400).json({ message: "Missing fields" });
     }
 
-    const now = Date.now();
-    const scheduleTime = new Date(schedule.scheduleDate).getTime();
+    const schedule = await Schedule.findOne({
+      _id: scheduleId,
+      adminId,
+    });
 
-    // ❌ If time has not passed
-    // if (now < scheduleTime) {
-    //   return res.status(403).json({
-    //     message: "Winner not declared yet. Please check after scheduled time.",
-    //   });
-    // }
+    if (!schedule) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
 
-    // ❌ If admin has not declared winner
-    if (!schedule.isDeclared) {
+    schedule.scheduleDate = new Date(scheduleDate);
+    await schedule.save();
+
+    res.status(200).json({
+      message: "Schedule time updated successfully",
+      schedule,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating schedule time",
+      error: error.message,
+    });
+  }
+});
+
+/* ============================================================
+   SELECT / CHANGE WINNER (OWNER CHECK)
+   ============================================================ */
+router.put("/select-winner", async (req, res) => {
+  try {
+    const { scheduleId, adminId, winnerId } = req.body;
+
+    if (!scheduleId || !adminId || !winnerId) {
+      return res.status(400).json({ message: "Missing fields" });
+    }
+
+    const schedule = await Schedule.findOne({
+      _id: scheduleId,
+      adminId,
+    });
+
+    if (!schedule) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    schedule.winnerId = winnerId;
+    schedule.isDeclared = true;
+
+    await schedule.save();
+
+    res.status(200).json({
+      message: "Winner updated successfully",
+      winnerId,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Error selecting winner",
+      error: error.message,
+    });
+  }
+});
+
+/* ============================================================
+   GET RESULT OF SPECIFIC LOTTERY (OWNER CHECK)
+   ============================================================ */
+router.get("/result/:scheduleId", async (req, res) => {
+  try {
+    const { adminId } = req.query;
+
+    if (!adminId) {
+      return res.status(400).json({ message: "Admin ID required" });
+    }
+
+    const schedule = await Schedule.findOne({
+      _id: req.params.scheduleId,
+      adminId,
+    }).populate("winnerId", "name mobile");
+
+    if (!schedule) {
       return res.status(403).json({
-        message: "Winner not declared by admin yet.",
+        message: "Not authorized or schedule not found",
       });
     }
 
-    // ✅ Everything valid
-    return res.status(200).json({
+    if (!schedule.isDeclared) {
+      return res.status(403).json({
+        message: "Winner not declared yet",
+      });
+    }
+
+    res.status(200).json({
       scheduleId: schedule._id,
       lotteryName: schedule.lotteryName,
       scheduleDate: schedule.scheduleDate,
@@ -196,7 +240,7 @@ router.get("/result", async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "Error fetching result",
       error: error.message,
     });

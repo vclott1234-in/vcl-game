@@ -45,8 +45,9 @@ router.put("/update-profile", async (req, res) => {
 });
 
 router.get("/get-users", async (req, res) => {
+  const {createdBy} = req.query;
   try {
-    const users = await User.find();
+    const users = await User.find({createdBy});
 
     if (!users.length) {
       return res.status(404).json({ message: "No users found" });

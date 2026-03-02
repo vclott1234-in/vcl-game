@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+    createdBy: {
+      type: String,
+      required: [true , "Admin ID is required."]
+    }
   },
   { timestamps: true }
 );

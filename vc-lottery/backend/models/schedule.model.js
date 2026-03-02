@@ -31,6 +31,10 @@ const scheduleSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    adminId: {
+      type: String,
+      required: [true , "Admin Id is required."]
+    }
   },
   { timestamps: true }
 );

@@ -9,7 +9,7 @@ const router = express.Router();
  */
 router.post("/add-user", async (req, res) => {
   try {
-    const { name, mobile, password, town, address } = req.body;
+    const { name, mobile, password, town, address , adminId } = req.body;
 
     if (!name || !mobile || !password) {
       return res.status(400).json({ message: "Required fields missing!" });
@@ -20,12 +20,16 @@ router.post("/add-user", async (req, res) => {
       return res.status(400).json({ message: "Mobile already registered!" });
     }
 
+    const tokenlen = await User.find({createdBy: adminId});
+
     const user = await User.create({
       name,
       mobile,
       password,
       town,
       address,
+      createdBy: adminId,
+      token: tokenlen+1
     });
 
     res.status(201).json({ message: "User created successfully!", user });
