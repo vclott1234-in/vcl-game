@@ -3,13 +3,10 @@ import User from "../models/user.model.js";
 
 const router = express.Router();
 
-/**
- * Add a new user (Signup)
- * Body: { name, mobile, password, town, address }
- */
+// ================= ADD USER =================
 router.post("/add-user", async (req, res) => {
   try {
-    const { name, mobile, password, town, address , adminId } = req.body;
+    const { name, mobile, password, town, address, adminId } = req.body;
 
     if (!name || !mobile || !password) {
       return res.status(400).json({ message: "Required fields missing!" });
@@ -20,7 +17,7 @@ router.post("/add-user", async (req, res) => {
       return res.status(400).json({ message: "Mobile already registered!" });
     }
 
-    const tokenlen = await User.find({createdBy: adminId});
+    const tokenlen = await User.countDocuments({ createdBy: adminId });
 
     const user = await User.create({
       name,
@@ -29,32 +26,39 @@ router.post("/add-user", async (req, res) => {
       town,
       address,
       createdBy: adminId,
-      token: tokenlen+1
+      token: tokenlen + 1,
     });
 
     res.status(201).json({ message: "User created successfully!", user });
   } catch (err) {
-    res.status(500).json({ message: "Error creating user", error: err });
+    console.error(err); // 👈 ADD THIS
+    res.status(500).json({ message: "Error creating user" });
   }
 });
 
-/**
- * Login user (mobile + password)
- * Body: { mobile, password }
- */
+// ================= LOGIN =================
 router.post("/login", async (req, res) => {
   try {
     const { mobile, password } = req.body;
 
+    if (!mobile || !password) {
+      return res.status(400).json({ message: "Mobile and password required!" });
+    }
+
     const user = await User.findOne({ mobile });
 
-    if (!user || user.password !== password) {
+    if (!user) {
+      return res.status(400).json({ message: "User not found!" });
+    }
+
+    if (user.password !== password) {
       return res.status(400).json({ message: "Invalid credentials!" });
     }
 
     res.status(200).json({ message: "Login successful!", user });
   } catch (err) {
-    res.status(500).json({ message: "Error logging in", error: err });
+    console.error("LOGIN ERROR:", err); // 👈 IMPORTANT
+    res.status(500).json({ message: "Server error during login" });
   }
 });
 
